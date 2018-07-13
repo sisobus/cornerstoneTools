@@ -12,6 +12,9 @@ export {
   default as angleMouse
 } from './new-api-tools-and-examples/angleMouse.js';
 export {
+  default as wwwcMouse
+} from './new-api-tools-and-examples/wwwcMouse.js';
+export {
   setToolActive,
   setToolEnabled,
   setToolDisabled,

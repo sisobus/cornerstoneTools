@@ -281,8 +281,10 @@ function mouseDownActivate (evt) {
 
   if (activeTool.addNewMeasurement) {
     activeTool.addNewMeasurement(eventData, activeTool);
-  } else {
+  } else if (activeTool.createNewMeasurement) {
     addNewMeasurement(eventData, activeTool);
+  } else {
+    activeTool.mouseDownActivate(evt);
   }
 
   evt.preventDefault();
