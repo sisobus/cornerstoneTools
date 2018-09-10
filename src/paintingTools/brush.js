@@ -3,6 +3,7 @@ import { getToolState } from '../stateManagement/toolState.js';
 import brushTool from './brushTool.js';
 import getCircle from './getCircle.js';
 import { drawBrushPixels, drawBrushOnCanvas } from './drawBrush.js';
+import { getEndOfCircle, connectEndsOfBrush, isCircleInPolygon, fillColor } from './fill.js';
 
 /* Safari and Edge polyfill for createImageBitmap
  * https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/createImageBitmap
@@ -120,13 +121,56 @@ function onImageRendered (e) {
   context.stroke();
 }
 
+// This method is for fill region of segmentation overlays
+function fill (eventData) {
+  const configuration = brush.getConfiguration();
+  const radius = configuration.radius;
+  const element = eventData.element;
+  const { rows, columns } = eventData.image;
+  let { x, y } = eventData.currentPoints.image;
+  const toolData = getToolState(element, TOOL_STATE_TOOL_TYPE);
+  const pixelData = toolData.data[0].pixelData;
+  const brushPixelValue = configuration.draw;
+
+  if (x < 0 || x > columns ||
+    y < 0 || y > rows) {
+    return;
+  }
+
+  x = Math.round(x);
+  y = Math.round(y);
+
+  // This thisCircle = [(x, y - radius), (x + radius, y), (x, y + radius), (x - radius, y)]
+  const thisCircle = getEndOfCircle(x, y, columns, rows, pixelData, brushPixelValue);
+
+  if (Math.abs(thisCircle[0] - thisCircle[2]) > radius * 2 && Math.abs(thisCircle[1] - thisCircle[3]) > radius * 2) {
+    // If the position you clicked is aleady in same color, this method is not necessary.
+    return;
+  }
+
+  if (connectEndsOfBrush(x, y, columns, rows, thisCircle, pixelData, brushPixelValue)) {
+    if (isCircleInPolygon(x, y, columns, rows, thisCircle, pixelData, brushPixelValue)) {
+      fillColor(x, thisCircle[0] - 1, columns, rows, pixelData, brushPixelValue);
+    }
+  }
+
+  external.cornerstone.updateImage(element);
+}
+
+function onMouseDoubleClick (e) {
+  const eventData = e.detail;
+
+  fill(eventData);
+}
+
 const brush = brushTool({
   onMouseMove,
   onMouseDown,
   onMouseUp,
   onDrag,
   toolType,
-  onImageRendered
+  onImageRendered,
+  onMouseDoubleClick
 });
 
 brush.setConfiguration(configuration);
